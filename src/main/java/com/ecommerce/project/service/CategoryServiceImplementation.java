@@ -1,44 +1,62 @@
 package com.ecommerce.project.service;
 
 import com.ecommerce.project.model.Category;
+import com.ecommerce.project.repositories.CategoryRepository;
+import jakarta.persistence.Table;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
+
 
 @Service
 public class CategoryServiceImplementation implements CategoryService {
 
-    List<Category> categories = new ArrayList<>();
     Long categoriesIdCounter = 1L;
+
+    @Autowired
+    private CategoryRepository categoryRepository;
 
     @Override
     public List<Category> getAllCategories() {
-        return categories;
+        return categoryRepository.findAll();
     }
 
     @Override
     public void addCategory(Category category) {
         category.setCategoryId(categoriesIdCounter++);
-        categories.add(category);
+        categoryRepository.save(category);
     }
     @Override
-    public String deleteCategory(Long categoryId) {
-        Category category = categories.stream()
+    public String deleteCategory(Long categoryId){
+
+        /*Category category = categories.stream()
                 .filter(c -> c.getCategoryId().equals(categoryId))
                 .findFirst()
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Resource is not found!"));
-        categories.remove(category);
-        return "Category with id " + categoryId + " is deleted";
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Resource is not found!"));*/
+
+        Category category = categoryRepository.findById(categoryId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Resource not found!"));
+        categoryRepository.delete(category);
+
+        return "Category with categoryId {" + categoryId + "} deleted!";
                         
     }
 
     @Override
     public Category updaateCategory(Long categoryId, Category category) {
-        Optional<Category> optionalCategory = categories.stream()
+
+        // Optional<Category> categoryOptional = categoryRepository.findById(categoryId);
+
+        Category savedCategory = categoryRepository.findById(categoryId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Resource not found!"));
+
+        category.setCategoryId(categoryId);
+        savedCategory = categoryRepository.save(category);
+
+        return savedCategory;
+
+        /*Optional<Category> optionalCategory = categories.stream()
                 .filter(c -> c.getCategoryId().equals(categoryId))
                 .findFirst();
 
@@ -48,6 +66,6 @@ public class CategoryServiceImplementation implements CategoryService {
             return updatedCategory;
         }else{
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "There is no category with id "+ categoryId);
-        }
+        }*/
     }
 }
