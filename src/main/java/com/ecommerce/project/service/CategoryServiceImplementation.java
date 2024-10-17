@@ -1,8 +1,9 @@
 package com.ecommerce.project.service;
 
+import com.ecommerce.project.exceptions.APIException;
+import com.ecommerce.project.exceptions.ResourceNotFoundException;
 import com.ecommerce.project.model.Category;
 import com.ecommerce.project.repositories.CategoryRepository;
-import jakarta.persistence.Table;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -14,19 +15,25 @@ import java.util.List;
 @Service
 public class CategoryServiceImplementation implements CategoryService {
 
-    Long categoriesIdCounter = 1L;
 
     @Autowired
     private CategoryRepository categoryRepository;
 
     @Override
     public List<Category> getAllCategories() {
-        return categoryRepository.findAll();
+        List<Category> categories = categoryRepository.findAll();
+        if(categories.isEmpty())
+            throw new APIException("There are no categories");
+        return categories;
     }
 
     @Override
     public void addCategory(Category category) {
-        category.setCategoryId(categoriesIdCounter++);
+        if(categoryRepository.findByCategoryName(category.getCategoryName()) != null) {
+            throw new APIException("Category with the name " + category.getCategoryName() + " already exists");
+        }else if(category.getCategoryId() != null && categoryRepository.findById(category.getCategoryId()).isPresent()) {
+            throw new APIException("Category with the id " + category.getCategoryId() + " already exists");
+        }
         categoryRepository.save(category);
     }
     @Override
@@ -37,7 +44,7 @@ public class CategoryServiceImplementation implements CategoryService {
                 .findFirst()
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Resource is not found!"));*/
 
-        Category category = categoryRepository.findById(categoryId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Resource not found!"));
+        Category category = categoryRepository.findById(categoryId).orElseThrow(() -> new ResourceNotFoundException("Category","categoryId", categoryId));
         categoryRepository.delete(category);
 
         return "Category with categoryId {" + categoryId + "} deleted!";
@@ -49,7 +56,9 @@ public class CategoryServiceImplementation implements CategoryService {
 
         // Optional<Category> categoryOptional = categoryRepository.findById(categoryId);
 
-        Category savedCategory = categoryRepository.findById(categoryId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Resource not found!"));
+        Category savedCategory = categoryRepository.findById(categoryId).orElseThrow(() -> {
+            return new ResourceNotFoundException("Category","categoryId", categoryId);
+        });
 
         category.setCategoryId(categoryId);
         savedCategory = categoryRepository.save(category);
